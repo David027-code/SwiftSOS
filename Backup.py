@@ -312,6 +312,20 @@ with tab2:
 
     st_folium(m, width=1000, height=380)
 
+    st.subheader("🎛️ Responder Action Controls")
+    active_ids = [a["ID"] for a in st.session_state.alerts if a["Status"] != "RESOLVED"]
+    if active_ids:
+        c1, c2, c3 = st.columns([1.5, 1.5, 1])
+        selected_id = c1.selectbox("Select Alert ID", active_ids)
+        new_status = c2.selectbox("Update Status", ["PATROL DISPATCHED", "RESOLVED"])
+        if c3.button("Update Dispatch Status", use_container_width=True):
+            for alert in st.session_state.alerts:
+                if alert["ID"] == selected_id:
+                    alert["Status"] = new_status
+            st.rerun()
+
+    st.dataframe(pd.DataFrame(st.session_state.alerts), use_container_width=True)
+
 with tab3:
     st.subheader("📞 Verified UNN & Nsukka Quick-Response Directory")
     st.caption("Official emergency lines sourced from UNN Security, UNN Medical Centre, and Nsukka Fire Station.")
