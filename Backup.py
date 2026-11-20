@@ -140,72 +140,6 @@ if "ai_messages" not in st.session_state:
         {"role": "assistant", "content": "👋 I'm **SwiftAI**. Tell me what's happening, and I'll talk it through with you. If someone is in immediate danger, call **112** now."}
     ]
 
-if "demo_logged_in" not in st.session_state:
-    st.session_state.demo_logged_in = False
-
-if not st.session_state.demo_logged_in:
-    st.markdown(
-        """
-        <div style="
-            max-width: 760px; margin: 3rem auto 1rem; padding: 1.5rem 1.7rem;
-            border: 1px solid #e2e8f0; border-radius: 18px;
-            background: linear-gradient(115deg, #fff, #fff6f7);
-            box-shadow: 0 12px 32px rgba(15,23,42,.07);">
-          <div style="font-size:.76rem; font-weight:800; letter-spacing:.14em;
-                      text-transform:uppercase; color:#e11d48; margin-bottom:.45rem;">
-            Student access
-          </div>
-          <div style="font-size:2rem; font-weight:850; color:#172033;">
-            🚨 SwiftSOS
-          </div>
-          <div style="margin-top:.4rem; color:#64748b;">
-            Enter demo details to continue to the campus response dashboard.
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    login_col, _ = st.columns([1.2, 1])
-    with login_col:
-        st.subheader("Student sign-in")
-        st.warning(
-            "Demo only — this form does not verify student identity. Use sample data, "
-            "not a real registration number or real medical history. Details are kept "
-            "only in this active app session, are not saved to a database, and are not "
-            "sent to SwiftAI."
-        )
-        with st.form("demo_student_login"):
-            student_reg_no = st.text_input(
-                "Student registration number",
-                placeholder="e.g., DEMO/2026/001",
-            )
-            medical_history = st.text_area(
-                "Medical history",
-                placeholder="For demo data: allergies, conditions, medications, or relevant emergency notes",
-                height=130,
-            )
-            login_submitted = st.form_submit_button(
-                "Continue to SwiftSOS",
-                type="primary",
-                use_container_width=True,
-            )
-
-        if login_submitted:
-            if not student_reg_no.strip() or not medical_history.strip():
-                st.error("Enter both a registration number and medical history to continue.")
-            else:
-                st.session_state.student_profile = {
-                    "registration_number": student_reg_no.strip(),
-                    "medical_history": medical_history.strip(),
-                }
-                st.session_state.demo_logged_in = True
-                st.rerun()
-    st.stop()
-
-def end_demo_session():
-    st.session_state.pop("student_profile", None)
-    st.session_state.demo_logged_in = False
-
 st.markdown(
     """
     <div style="
@@ -230,14 +164,6 @@ st.markdown(
     </div>
     """,
     unsafe_allow_html=True,
-)
-
-session_info, logout_column = st.columns([5, 1])
-session_info.caption("Demo student session · Profile details are not sent to SwiftAI.")
-logout_column.button(
-    "Sign out",
-    use_container_width=True,
-    on_click=end_demo_session,
 )
 
 tab1, tab2, tab3 = st.tabs(["📱 Student SOS Trigger", "🛡️ Security Command Center", "📞 Verified Campus Responders"])
