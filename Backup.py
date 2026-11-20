@@ -13,32 +13,113 @@ st.set_page_config(page_title="SwiftSOS | Campus Rapid Response", page_icon="�
 
 st.markdown("""
 <style>
+    :root {
+        --ink: #172033;
+        --muted: #64748b;
+        --line: #e2e8f0;
+        --accent: #e11d48;
+        --accent-dark: #be123c;
+        --surface: #ffffff;
+    }
+    [data-testid="stAppViewContainer"] {
+        background:
+            radial-gradient(ellipse at 10% 0%, rgba(244, 63, 94, .09), transparent 34rem),
+            #f5f7fb;
+        color: var(--ink);
+    }
+    [data-testid="stHeader"] { background: transparent; }
+    section.main > div.block-container {
+        max-width: 1440px;
+        padding: 2rem 2.25rem 3rem;
+    }
+    h1, h2, h3 { color: var(--ink); letter-spacing: -.025em; }
+    h1 { font-size: clamp(2rem, 3.2vw, 2.8rem) !important; }
+    h2, h3 { font-weight: 750 !important; }
+    [data-testid="stCaptionContainer"] { color: var(--muted); }
+    [data-testid="stTabs"] [role="tablist"] {
+        gap: .55rem;
+        border-bottom: 1px solid var(--line);
+    }
+    [data-testid="stTabs"] button[role="tab"] {
+        border-radius: 10px 10px 0 0;
+        padding: .8rem 1rem;
+        color: #475569;
+        font-weight: 650;
+    }
+    [data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+        color: var(--accent-dark);
+        border-bottom-color: var(--accent);
+    }
+    .stButton > button {
+        border-radius: 10px;
+        min-height: 2.8rem;
+        font-weight: 650;
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .stButton > button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(15, 23, 42, .12);
+    }
     .stButton > button[kind="primary"] {
-        background: linear-gradient(90deg, #d90429, #ef233c);
-        border: none;
-        padding: 18px 24px;
-        font-size: 20px;
+        background: linear-gradient(115deg, #e11d48, #fb4b61);
+        border: 0;
+        padding: 1rem 1.4rem;
+        font-size: 1.05rem;
         font-weight: 800;
-        letter-spacing: 1px;
+        letter-spacing: .035em;
+        box-shadow: 0 8px 22px rgba(225, 29, 72, .24);
+    }
+    [data-testid="stSelectbox"] [data-baseweb="select"] > div,
+    [data-testid="stTextInput"] input {
+        border-radius: 9px;
+        border-color: #d7deea;
+        background: var(--surface);
+    }
+    [data-testid="stMetric"] {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 1rem 1.1rem;
+        box-shadow: 0 5px 18px rgba(15, 23, 42, .045);
+    }
+    [data-testid="stMetricLabel"] { color: var(--muted); font-weight: 600; }
+    [data-testid="stMetricValue"] { color: var(--ink); font-weight: 800; }
+    [data-testid="stChatMessage"] {
+        border: 1px solid rgba(226, 232, 240, .85);
         border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(239, 35, 60, 0.45);
+        background: var(--surface);
+        padding: .8rem 1rem;
+        margin-bottom: .6rem;
+    }
+    [data-testid="stDataFrame"], [data-testid="stTable"], iframe {
+        border-radius: 12px;
+        overflow: hidden;
     }
     .sms-box {
-        background-color: #1e293b;
-        border-left: 5px solid #ef233c;
-        padding: 16px;
-        border-radius: 8px;
-        font-family: monospace;
+        background: linear-gradient(145deg, #172033, #25334b);
+        border-left: 4px solid #fb4b61;
+        padding: 1.1rem 1.2rem;
+        border-radius: 10px;
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
         color: #f8fafc;
-        margin-top: 12px;
+        line-height: 1.65;
+        overflow-wrap: anywhere;
+        margin-top: .75rem;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, .12);
     }
     .first-aid-box {
-        background-color: #fefce8;
-        border-left: 5px solid #eab308;
-        padding: 16px;
-        border-radius: 8px;
-        color: #1e293b;
-        margin-top: 14px;
+        background: linear-gradient(145deg, #fffbeb, #fff7d6);
+        border: 1px solid #fde68a;
+        border-left: 4px solid #eab308;
+        padding: 1.1rem 1.2rem;
+        border-radius: 10px;
+        color: #334155;
+        line-height: 1.8;
+        margin-top: .9rem;
+    }
+    @media (max-width: 700px) {
+        section.main > div.block-container { padding: 1.25rem 1rem 2rem; }
+        [data-testid="stTabs"] button[role="tab"] { padding: .65rem .55rem; }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -59,8 +140,31 @@ if "ai_messages" not in st.session_state:
         {"role": "assistant", "content": "👋 I'm **SwiftAI**. Tell me what's happening, and I'll talk it through with you. If someone is in immediate danger, call **112** now."}
     ]
 
-st.title("🚨 SwiftSOS — Rapid Campus Emergency Response")
-st.caption("Built by Team Quad Core • Auto-GPS + Offline SMS Fallback + Guided First-Aid")
+st.markdown(
+    """
+    <div style="
+        padding: 1.35rem 1.6rem; margin-bottom: 1.5rem;
+        border: 1px solid rgba(226,232,240,.9); border-radius: 18px;
+        background: linear-gradient(115deg, rgba(255,255,255,.98), rgba(255,246,247,.96));
+        box-shadow: 0 12px 32px rgba(15,23,42,.06);">
+      <div style="font-size:.76rem; font-weight:800; letter-spacing:.14em;
+                  text-transform:uppercase; color:#e11d48; margin-bottom:.45rem;">
+        Campus rapid response
+      </div>
+      <div style="font-size:clamp(1.7rem,3vw,2.5rem); font-weight:850;
+                  line-height:1.15; letter-spacing:-.04em; color:#172033;">
+        🚨 SwiftSOS
+        <span style="font-size:.52em; font-weight:650; letter-spacing:-.01em; color:#475569;">
+          Emergency coordination, made simple
+        </span>
+      </div>
+      <div style="margin-top:.65rem; color:#64748b; font-size:.94rem;">
+        SOS alerts · Campus dispatch map · First-aid guidance
+      </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 tab1, tab2, tab3 = st.tabs(["📱 Student SOS Trigger", "🛡️ Security Command Center", "📞 Verified Campus Responders"])
 
