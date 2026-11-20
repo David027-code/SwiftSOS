@@ -115,9 +115,18 @@ if "ai_messages" not in st.session_state:
         {"role": "assistant", "content": "👋 I'm **SwiftAI**. Tell me what's happening, and I'll talk it through with you. If someone is in immediate danger, call **112** now."}
     ]
 
-st.caption("CAMPUS RESPONSE")
-st.title("SwiftSOS")
-st.caption("Emergency alerts, campus coordination and first-aid guidance.")
+header, pitch_deck = st.columns([5, 1], gap="medium")
+with header:
+    st.caption("CAMPUS RESPONSE")
+    st.title("SwiftSOS")
+    st.caption("Emergency alerts, campus coordination and first-aid guidance.")
+with pitch_deck:
+    st.markdown("<div style='height: 2rem'></div>", unsafe_allow_html=True)
+    st.link_button(
+        "Pitch deck ↗",
+        "https://canva.link/uz6aaek12nc9u0v",
+        use_container_width=True,
+    )
 
 tab1, tab2, tab3 = st.tabs(["Student SOS", "Security desk", "Responder directory"])
 
