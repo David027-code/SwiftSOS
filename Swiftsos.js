@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SwiftSOS | Campus Rapid Response</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#fff;color:#1e293b;padding:20px;max-width:1200px;margin:auto}
+  h1{margin:0 0 4px} .cap{color:#64748b;margin-bottom:16px}
+  .tabs{display:flex;gap:6px;border-bottom:2px solid #e2e8f0;margin-bottom:18px;flex-wrap:wrap}
+  .tab{padding:10px 16px;border:none;background:none;cursor:pointer;font-size:15px;border-bottom:3px solid transparent;color:#475569}
+  .tab.active{border-color:#ef233c;color:#ef233c;font-weight:700}
+  .panel{display:none} .panel.active{display:block}
+  .grid{display:grid;grid-template-columns:1.3fr 1fr;gap:24px}
+  @media(max-width:800px){.grid{grid-template-columns:1fr}}
+  label{display:block;font-weight:600;margin:14px 0 6px}
+  select,input[type=text]{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px}
+  .sos{width:100%;margin-top:18px;background:linear-gradient(90deg,#d90429,#ef233c);color:#fff;border:none;padding:18px 24px;font-size:20px;font-weight:800;letter-spacing:1px;border-radius:12px;box-shadow:0 4px 20px rgba(239,35,60,.45);cursor:pointer}
+  .sos:active{transform:scale(.98)}
+  .banner{background:#dcfce7;color:#166534;padding:12px;border-radius:8px;margin-top:12px}
+  .info{background:#e0f2fe;color:#075985;padding:12px;border-radius:8px}
+  .sms{background:#1e293b;border-left:5px solid #ef233c;padding:16px;border-radius:8px;font-family:monospace;color:#f8fafc;margin-top:12px;word-break:break-word}
+  .sms a{color:#7dd3fc}
+  .aid{background:#fefce8;border-left:5px solid #eab308;padding:16px;border-radius:8px;color:#1e293b;margin-top:14px;line-height:1.7}
+  .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+  .metric{border:1px solid #e2e8f0;border-radius:10px;padding:14px}
+  .metric small{color:#64748b} .metric div{font-size:28px;font-weight:700}
+  #map{height:380px;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:16px}
+  .ctrl{display:grid;grid-template-columns:1.5fr 1.5fr 1fr;gap:12px;align-items:end;margin-bottom:16px}
+  @media(max-width:700px){.ctrl{grid-template-columns:1fr}}
+  .btn{padding:10px;border:1px solid #cbd5e1;border-radius:8px;background:#f1f5f9;cursor:pointer;font-size:15px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{border-bottom:1px solid #e2e8f0;padding:8px;text-align:left}
+  th{background:#f8fafc} .wrap{overflow-x:auto}
+  .pin{width:18px;height:18px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.5)}
+  @media(prefers-color-scheme:dark){
+    body{background:#0f172a;color:#e2e8f0} select,input{background:#1e293b;color:#e2e8f0;border-color:#334155}
+    .metric,#map{border-color:#334155} th{background:#1e293b} th,td{border-color:#334155}
+    .btn{background:#1e293b;color:#e2e8f0;border-color:#334155} .tabs{border-color:#334155} .tab{color:#94a3b8}
+  }
+</style>
+</head>
+<body>
+<h1>🚨 SwiftSOS — Rapid Campus Emergency Response</h1>
+<div class="cap">Built by Team Quad Core • Auto-GPS + Offline SMS Fallback + Guided First-Aid</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="t1">📱 Student SOS Trigger</button>
+  <button class="tab" data-tab="t2">🛡️ Security Command Center</button>
+  <button class="tab" data-tab="t3">📞 Verified Campus Responders</button>
+</div>
+
+<!-- TAB 1 -->
+<div class="panel active" id="t1">
+  <div class="grid">
+    <div>
+      <h2>Need Immediate Help?</h2>
+      <label>1. Select Emergency Type</label>
+      <select id="etype"></select>
+      <label>2. Location (Search Campus Spots or Use Live GPS)</label>
+      <select id="landmark"></select>
+      <label>3. Optional Custom Spot / Note</label>
+      <input type="text" id="note" placeholder="Leave blank for silent 1-tap SOS... (e.g., 'Hilltop Lodge, Room 12')">
+      <button class="sos" id="sosBtn">🆘 TRIGGER SOS</button>
+      <div id="banner"></div>
+    </div>
+    <div>
+      <h2>📡 Live Transmission &amp; Golden-5-Min Guide</h2>
+      <div id="out"><div class="info">Tap the red SOS button to simulate an instant emergency dispatch, SMS payload, and offline bystander First-Aid Guide.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2 -->
+<div class="panel" id="t2">
+  <div class="metrics">
+    <div class="metric"><small>🔴 Active SOS Alerts</small><div id="mActive">0</div></div>
+    <div class="metric"><small>🟠 Patrols En Route</small><div id="mDisp">0</div></div>
+    <div class="metric"><small>⚡ Avg Dispatch Time</small><div>1m 45s</div></div>
+  </div>
+  <h3>Live Campus Dispatch Map</h3>
+  <div id="map"></div>
+  <h3>🎛️ Responder Action Controls</h3>
+  <div class="ctrl" id="ctrl">
+    <div><label>Select Alert ID</label><select id="selId"></select></div>
+    <div><label>Update Status</label>
+      <select id="selStatus"><option>PATROL DISPATCHED</option><option>RESOLVED</option></select></div>
+    <button class="btn" id="updBtn">Update Dispatch Status</button>
+  </div>
+  <div class="wrap"><table id="alertTable"></table></div>
+</div>
+
+<!-- TAB 3 -->
+<div class="panel" id="t3">
+  <h2>📞 Verified UNN &amp; Nsukka Quick-Response Directory</h2>
+  <div class="cap">Official emergency lines sourced from UNN Security, UNN Medical Centre, and Nsukka Fire Station.</div>
+  <div class="wrap"><table id="respTable"></table></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const GPS = "📍 Auto-Detect Live Satellite GPS (Any Remote / Off-Campus Spot)";
+const EMERGENCIES = ["Medical Emergency","Security / Armed Threat","Harassment / Assault","Fire Outbreak","Campus Road Accident"];
+const COORDS = {
+  "Bello Hostel":[6.8690,7.4110],
+  [GPS]:[6.8725,7.4060],
+  "Hilltop (Off-Campus Lodges)":[6.8760,7.4035],
+  "Behind Flat (Off-Campus)":[6.8615,7.4045],
+  "Odenigwe Axis":[6.8745,7.4125],
+  "Odim Gate / Green House":[6.8715,7.4040],
+  "Mbanefo Hostel":[6.8685,7.4118],
+  "Akintola Hostel":[6.8678,7.4105],
+  "Okpara Hostel":[6.8695,7.4102],
+  "Alvan Ikoku Hostel":[6.8662,7.4128],
+  "Franco Hostel":[6.8645,7.4120],
+  "Zik's Flats Axis":[6.8670,7.4083],
+  "Nnamdi Azikiwe Library":[6.8682,7.4068],
+  "SUB (Student Union Building)":[6.8665,7.4095],
+  "Carver Building / Arts Complex":[6.8658,7.4075],
+  "Faculty of Physical Sciences":[6.8650,7.4055],
+  "Faculty of Engineering":[6.8638,7.4062],
+  "Presidential Road Gate":[6.8620,7.4140],
+  "New Market / Beach Junction":[6.8585,7.4150]
+};
+const GUIDES = {
+  medical:`<b>🩺 OFFLINE FIRST-AID GUIDE (While Medical Team Arrives in 3–5 Mins):</b><br><br>
+    1. <b>Sit the person upright</b> — Do NOT lay them flat on their back.<br>
+    2. <b>Loosen tight clothing</b> around the neck and chest.<br>
+    3. <b>Guide slow, steady breaths</b> (4s in, 6s out) to reduce panic.<br>
+    4. <b>Clear bystanders back</b> so fresh air circulates freely.`,
+  fire:`<b>🔥 OFFLINE FIRE SAFETY GUIDE (While Fire Service En Route):</b><br><br>
+    1. <b>Stay low below smoke</b> and cover nose/mouth with damp cloth.<br>
+    2. <b>Evacuate immediately</b> via nearest staircase — never use elevators.`,
+  accident:`<b>🚑 OFFLINE TRAUMA FIRST-AID (While Ambulance En Route):</b><br><br>
+    1. <b>Apply firm, direct pressure</b> on any bleeding with a clean cloth.<br>
+    2. <b>Do NOT move the victim</b> unnecessarily if neck/back injury is suspected.`,
+  security:`<b>🛡️ OFFLINE SAFETY PROTOCOL (While Q.I.U Patrol En Route):</b><br><br>
+    1. <b>Move to a safe, well-lit area</b> or lock doors immediately.<br>
+    2. <b>Keep your phone on silent</b> if hiding from an active threat.`
+};
+const RESPONDERS = [
+  {Unit:"UNN Security Q.I.U",Coverage:"Rapid Campus Patrol",Hotlines:"08037517228","Avg ETA":"3-5 mins"},
+  {Unit:"UNN Security Duty Room",Coverage:"Hostels & Gates",Hotlines:"07030395891","Avg ETA":"3-6 mins"},
+  {Unit:"UNN Medical Centre A/E",Coverage:"Campus Ambulance",Hotlines:"07036885702","Avg ETA":"5-8 mins"},
+  {Unit:"Nsukka Fire Service",Coverage:"Fire & Rescue",Hotlines:"08068079367","Avg ETA":"6-10 mins"},
+  {Unit:"National Emergency Line",Coverage:"Police, Fire & Medical",Hotlines:"112","Avg ETA":"24/7 Dispatch"}
+];
+
+// ---- State (mirrors st.session_state) ----
+const state = {
+  alerts:[
+    {ID:"SOS-102",Time:"10:14 PM",Emergency:"Security Threat",Location:"Zik's Flats Axis",Lat:6.8670,Lon:7.4083,Status:"PATROL DISPATCHED"},
+    {ID:"SOS-101",Time:"09:42 PM",Emergency:"Medical Emergency",Location:"Tetfund Hostel",Lat:6.8645,Lon:7.4120,Status:"RESOLVED"}
+  ],
+  lastSms:null, lastType:null
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+// ---- Populate selects ----
+$("etype").innerHTML = EMERGENCIES.map(e => `<option>${esc(e)}</option>`).join("");
+$("landmark").innerHTML = Object.keys(COORDS).map(k => `<option>${esc(k)}</option>`).join("");
+
+// ---- Tabs ----
+document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b === btn));
+  document.querySelectorAll(".panel").forEach(p => p.classList.toggle("active", p.id === btn.dataset.tab));
+  if (btn.dataset.tab === "t2") { initMap(); renderCommand(); setTimeout(() => map.invalidateSize(), 50); }
+}));
+
+// ---- Helpers ----
+function guideFor(t){
+  if (t === "Medical Emergency") return GUIDES.medical;
+  if (t === "Fire Outbreak") return GUIDES.fire;
+  if (t === "Campus Road Accident") return GUIDES.accident;
+  return GUIDES.security;
+}
+function responderFor(t){
+  if (t === "Medical Emergency") return "UNN Medical Centre (A/E Ambulance)";
+  if (t === "Fire Outbreak") return "Enugu State Fire Service (Nsukka)";
+  return "UNN Security Q.I.U";
+}
+
+// ---- Trigger SOS ----
+$("sosBtn").addEventListener("click", () => {
+  const type = $("etype").value, landmark = $("landmark").value, note = $("note").value.trim();
+  const [lat, lon] = COORDS[landmark];
+  const id = `SOS-${100 + state.alerts.length + 1}`;
+  const now = new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
+  const loc = (landmark.includes("Auto-Detect") && note) ? note : landmark;
+
+  state.alerts.unshift({ID:id,Time:now,Emergency:type,Location:loc,Lat:lat,Lon:lon,Status:"ACTIVE SOS"});
+
+  const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+  const noteTxt = note ? ` | Note: ${note}` : "";
+  state.lastSms = {
+    pre:`[SWIFTSOS ALERT • ${id}] ${type.toUpperCase()} reported at ${loc} (${now}). GPS: `,
+    url:mapsUrl,
+    post:`${noteTxt} — Dispatched to ${responderFor(type)} & 3 Trusted Contacts.`
+  };
+  state.lastType = type;
+
+  $("banner").innerHTML = `<div class="banner">🚨 EMERGENCY BEACON ACTIVATED! Live coordinates transmitted to Responder Command &amp; Trusted Contacts.</div>`;
+  setTimeout(() => $("banner").innerHTML = "", 1200);
+
+  renderOut();
+  if (map) renderCommand();
+});
+
+function renderOut(){
+  if (!state.lastSms) return;
+  const s = state.lastSms;
+  $("out").innerHTML = `
+    <div class="banner" style="margin-top:0">✅ SMS &amp; Data Payload Delivered (&lt; 2.4s)</div>
+    <div class="sms">${esc(s.pre)}<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url)}</a>${esc(s.post)}</div>
+    <div class="aid">${guideFor(state.lastType)}</div>`;
+}
+
+// ---- Command Center ----
+let map = null, layer = null;
+function initMap(){
+  if (map) return;
+  map = L.map("map").setView([6.8668, 7.4085], 15);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"&copy; OpenStreetMap contributors"}).addTo(map);
+  layer = L.layerGroup().addTo(map);
+}
+const COLORS = {"ACTIVE SOS":"#dc2626","PATROL DISPATCHED":"#f97316","RESOLVED":"#16a34a"};
+
+function renderCommand(){
+  $("mActive").textContent = state.alerts.filter(a => a.Status === "ACTIVE SOS").length;
+  $("mDisp").textContent = state.alerts.filter(a => a.Status === "PATROL DISPATCHED").length;
+
+  if (layer){
+    layer.clearLayers();
+    state.alerts.forEach(a => {
+      const icon = L.divIcon({className:"", html:`<div class="pin" style="background:${COLORS[a.Status]}"></div>`, iconSize:[18,18], iconAnchor:[9,9]});
+      L.marker([a.Lat, a.Lon], {icon, title:`🚨 ${a.ID} — ${a.Emergency} (${a.Status})`})
+        .bindPopup(`<b>${esc(a.ID)}: ${esc(a.Emergency)}</b><br>${esc(a.Location)}<br>Status: ${esc(a.Status)}`)
+        .addTo(layer);
+    });
+  }
+
+  const open = state.alerts.filter(a => a.Status !== "RESOLVED").map(a => a.ID);
+  const cur = $("selId").value;
+  $("selId").innerHTML = open.map(i => `<option>${i}</option>`).join("");
+  if (open.includes(cur)) $("selId").value = cur;
+  $("ctrl").style.display = open.length ? "" : "none";
+
+  const cols = ["ID","Time","Emergency","Location","Lat","Lon","Status"];
+  $("alertTable").innerHTML = `<thead><tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+    state.alerts.map(a => `<tr>${cols.map(c => `<td>${esc(a[c])}</td>`).join("")}</tr>`).join("") + "</tbody>";
+}
+
+$("updBtn").addEventListener("click", () => {
+  const id = $("selId").value, status = $("selStatus").value;
+  state.alerts.forEach(a => { if (a.ID === id) a.Status = status; });
+  renderCommand();
+});
+
+// ---- Responders ----
+(function(){
+  const cols = Object.keys(RESPONDERS[0]);
+  $("respTable").innerHTML = `<thead><tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+    RESPONDERS.map(r => `<tr>${cols.map(c => `<td>${esc(r[c])}</td>`).join("")}</tr>`).join("") + "</tbody>";
+})();
+</script>
+</body>
+</html>
